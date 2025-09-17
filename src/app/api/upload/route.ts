@@ -1,83 +1,84 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import formidable from "formidable";
 import { extractContent } from "@/utils/extractDocsContent";
 
-export default async function handler(req: NextRequest, res: NextResponse) {
-  if (req.method !== "POST") {
-    return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
-  }
-
+export async function POST(req: NextRequest) {
   try {
-    const form = formidable({ multiples: true, maxFileSize: 5 * 1024 * 1024 });
+    const formData = await req.formData();
+    if (!formData)
+      return NextResponse.json({ error: "Invalid upload" }, { status: 400 });
 
-    form.parse(req, async (err, fields, files) => {
-      if (err)
-        return NextResponse.json({ error: "Invalid upload" }, { status: 400 });
+    const textField = formData.getAll("text");
+    const files = formData.getAll("file");
+    const docs = [];
 
-      const docs: any[] = [];
-
-      if (fields.text) {
-        const textArray = Array.isArray(fields.text)
-          ? fields.text
-          : [fields.text];
-        for (const t of textArray) {
-          if (t.length > 5000) {
-            return NextResponse.json(
-              { error: "Textbox input exceeds 5000 characters" },
-              { status: 400 }
-            );
-          }
-          docs.push({
-            id: crypto.randomUUID(),
-            type: "text",
-            name: "textbox",
-            content: t,
-          });
-        }
-      }
-
-      // Handle files
-      if (files.file) {
-        // Handle files
-        const fileArray = Array.isArray(files.file) ? files.file : [files.file];
-        const totalSize = fileArray.reduce((sum, f) => sum + (f.size || 0), 0);
-        if (totalSize > 20 * 1024 * 1024) {
+    // Handle texts
+    if (textField) {
+      for (const t of textField) {
+        // Validate that each text ≤ 5000 chars
+        if (typeof t === "string" && t.length > 5000) {
           return NextResponse.json(
-            { error: "Total upload size must be ≤ 20MB" },
+            { error: "Textbox input exceeds 5000 characters" },
             { status: 400 }
           );
         }
-
-        for (const file of fileArray) {
-          const getContent = await extractContent(
-            file.filepath,
-            file.mimetype || ""
-          );
-          docs.push({
-            id: crypto.randomUUID(),
-            type: "file",
-            name: file.originalFilename || "unnamed",
-            content: getContent,
-          });
-          // Optionally delete the temp file
-          fs.unlink(file.filepath, () => {});
-        }
+        docs.push({
+          id: crypto.randomUUID(),
+          type: "text",
+          name: "textbox",
+          content: t,
+        });
       }
+    }
 
-      // Final validation: max 5 docs, total ≤ 20MB (already validated on frontend)
-      if (docs.length > 5) {
+    // Handle files
+    if (files) {
+      // Validate that each file ≤ 20MB
+      const totalSize = files.reduce((sum, f) => {
+        if (f instanceof File) {
+          return sum + f.size;
+        }
+        return sum;
+      }, 0);
+      if (totalSize > 20 * 1024 * 1024) {
         return NextResponse.json(
-          { error: "Max 5 documents allowed" },
+          { error: "Total upload size must be ≤ 20MB" },
           { status: 400 }
         );
       }
 
+      for (const file of files) {
+        if (file instanceof File) {
+          const content = await extractContent(file, file.type);
+
+          docs.push({
+            id: crypto.randomUUID(),
+            type: "file",
+            name: file.name || "unnamed",
+            content: content,
+          });
+        }
+      }
+    }
+
+    // Validate max 5 docs
+    if (docs.length > 5) {
       return NextResponse.json(
-        { docs: docs.map(({ id, type, name }) => ({ id, type, name })) },
-        { status: 200 }
+        { error: "Max 5 documents allowed" },
+        { status: 400 }
       );
-    });
+    }
+
+    return NextResponse.json(
+      {
+        docs: docs.map(({ id, type, name, content }) => ({
+          id,
+          type,
+          name,
+          content,
+        })),
+      },
+      { status: 200 }
+    );
   } catch (e) {
     return NextResponse.json(
       { error: "Server error", details: e },
