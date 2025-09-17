@@ -1,11 +1,9 @@
 import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { Document } from "langchain/document";
-import { FaissStore } from "@langchain/community/vectorstores/faiss";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 
 const embeddings = new OpenAIEmbeddings({

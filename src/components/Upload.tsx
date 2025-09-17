@@ -99,7 +99,7 @@ const Upload = ({
               {(src.type === "file" || src.type === "image") && (
                 <input
                   type="file"
-                  accept={src.type === "file" ? ".pdf,.docx,.txt" : "image/*"}
+                  accept={src.type === "file" ? ".pdf,.docx,.doc,.txt" : "image/*"}
                   onChange={(e) =>
                     updateSource(index, e.target.files?.[0] || null)
                   }

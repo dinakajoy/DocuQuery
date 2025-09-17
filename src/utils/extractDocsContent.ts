@@ -2,24 +2,22 @@
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
-import tesseract from "node-tesseract-ocr";
-
+import Tesseract from "tesseract.js";
 import { TextLoader } from "langchain/document_loaders/fs/text";
 import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 
-async function runOCR(filePath: string): Promise<string> {
-  try {
-    const text = await tesseract.recognize(filePath, {
-      lang: "eng",
-      oem: 1,
-      psm: 3,
-    });
-    return text;
-  } catch (err) {
-    console.error("OCR failed:", err);
-    return "";
-  }
+async function runOCR(imagePath: string) {
+  const workerPath = path.join(
+    process.cwd(),
+    "node_modules/tesseract.js/src/worker-script/node/index.js"
+  );
+  const {
+    data: { text },
+  } = await Tesseract.recognize(imagePath, "eng", {
+    workerPath,
+  });
+  return text;
 }
 
 export async function extractContent(file: File, mimeType: string) {
@@ -90,7 +88,11 @@ export async function extractContent(file: File, mimeType: string) {
       case "png":
       case "jpg":
       case "jpeg":
+      case "image/jpeg":
+      case "image/png":
+      case "image/jpg":
         content = await runOCR(filePath);
+        break;
 
       default:
         console.warn(`Unsupported file type: ${mimeType}`);
