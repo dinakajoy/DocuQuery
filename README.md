@@ -1,14 +1,14 @@
 # DocuQuery – Q&A System on Your Own Data
 
 DocuQuery is a **Question & Answer system** built with **Next.js, LangChain, and OpenAI embeddings**.  
-It allows users to paste text, upload **documents, or images** and query them in natural language.  
+It allows users to paste **text**, upload **documents, or images** and query them in natural language.  
 All processing happens **in-memory** — nothing is persisted to disk or external storage.
 
 ---
 
-## ✨ Features
+## 🚀 Features
 - Upload **multiple data sources**:
-  - Plain text (up to 5000 characters each)
+  - Plain `text` (up to 5000 characters each)
   - Files (`.pdf`, `.docx`, `.doc`, `.txt`)
   - Images (OCR text extraction with Tesseract.js)
 - Query your data in natural language
@@ -33,7 +33,7 @@ All processing happens **in-memory** — nothing is persisted to disk or externa
 ### 1. Clone the repository
 ```bash
 git clone https://github.com/dinakajoy/DocuQuery.git
-cd docu-query
+cd DocuQuery
 ```
 
 ### 2. Install dependencies
@@ -58,7 +58,7 @@ The app will be available at http://localhost:3000
 ## 🚀 Usage
 
 1. Upload your data on the left panel:
-  - Paste text into the textbox
+  - Paste `text` into the textbox
   - Upload `.pdf`, `.docx`, `.doc`, `.txt`, or `image` files
 2. Ask questions in the chatbox at the bottom
 3. Get answers based on your uploaded content
