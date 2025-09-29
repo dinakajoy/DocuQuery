@@ -9,6 +9,10 @@ type UploadProps = {
   setError: (err: string) => void;
   sources: DataSource[];
   setSources: (sources: DataSource[]) => void;
+  getTotalSizeMB: (sources: DataSource[]) => number;
+  dataUploaded: boolean;
+  setDataUploaded: (uploaded: boolean) => void;
+  resetAll: () => Promise<void>;
 };
 
 const Upload = ({
@@ -17,20 +21,22 @@ const Upload = ({
   setError,
   sources,
   setSources,
+  getTotalSizeMB,
+  dataUploaded,
+  setDataUploaded,
+  resetAll,
 }: UploadProps) => {
   const MAX_SOURCES = 5;
   const MAX_TOTAL_SIZE_MB = 20;
   const MAX_FILE_SIZE_MB = 5;
 
-  const getTotalSizeMB = (sources: DataSource[]) => {
-    let total = 0;
-    for (const src of sources) {
-      if (src.type === "file" || src.type === "image") {
-        const file = src.value as File;
-        if (file) total += file.size;
-      }
+  const addSource = (type: "text" | "file" | "image") => {
+    if (sources.length >= MAX_SOURCES) {
+      setError(`You can only add up to ${MAX_SOURCES} sources.`);
+      return;
     }
-    return total / (1024 * 1024);
+    setSources([...sources, { type, value: null }]);
+    setError("");
   };
 
   const updateSource = (index: number, value: string | File | null) => {
@@ -56,15 +62,6 @@ const Upload = ({
 
     setError("");
     setSources(updated);
-  };
-
-  const addSource = (type: "text" | "file" | "image") => {
-    if (sources.length >= MAX_SOURCES) {
-      setError(`You can only add up to ${MAX_SOURCES} sources.`);
-      return;
-    }
-    setSources([...sources, { type, value: null }]);
-    setError("");
   };
 
   const removeSource = (index: number) => {
@@ -99,7 +96,9 @@ const Upload = ({
               {(src.type === "file" || src.type === "image") && (
                 <input
                   type="file"
-                  accept={src.type === "file" ? ".pdf,.docx,.doc,.txt" : "image/*"}
+                  accept={
+                    src.type === "file" ? ".pdf,.docx,.doc,.txt" : "image/*"
+                  }
                   onChange={(e) =>
                     updateSource(index, e.target.files?.[0] || null)
                   }
@@ -119,29 +118,31 @@ const Upload = ({
         ))}
 
         {/* Add new sources */}
-        <div className="flex gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => addSource("text")}
-            className="bg-blue-500 text-white px-3 py-1 rounded cursor-pointer"
-          >
-            + Text
-          </button>
-          <button
-            type="button"
-            onClick={() => addSource("file")}
-            className="bg-green-500 text-white px-3 py-1 rounded cursor-pointer"
-          >
-            + File
-          </button>
-          <button
-            type="button"
-            onClick={() => addSource("image")}
-            className="bg-purple-500 text-white px-3 py-1 rounded cursor-pointer"
-          >
-            + Image
-          </button>
-        </div>
+        {!dataUploaded && (
+          <div className="flex gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => addSource("text")}
+              className="bg-blue-500 text-white px-3 py-1 rounded cursor-pointer"
+            >
+              + Text
+            </button>
+            <button
+              type="button"
+              onClick={() => addSource("file")}
+              className="bg-green-500 text-white px-3 py-1 rounded cursor-pointer"
+            >
+              + File
+            </button>
+            <button
+              type="button"
+              onClick={() => addSource("image")}
+              className="bg-purple-500 text-white px-3 py-1 rounded cursor-pointer"
+            >
+              + Image
+            </button>
+          </div>
+        )}
 
         {/* Counter */}
         <p className="text-sm text-gray-300">
@@ -153,12 +154,31 @@ const Upload = ({
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
         {/* Submit */}
-        <button
-          type="submit"
-          className="w-auto bg-gray-300 text-gray-700 py-2 px-4 rounded-lg border hover:bg-gray-700 hover:text-gray-300 cursor-pointer"
-        >
-          Upload
-        </button>
+        {dataUploaded ? (
+          <>
+            <button
+              className="w-auto bg-gray-300 text-gray-700 py-2 px-4 rounded-lg border hover:bg-gray-700 hover:text-gray-300 cursor-pointer"
+              onClick={resetAll}
+            >
+              Reset
+            </button>
+            {sources.length < MAX_SOURCES && (
+              <button
+                className="w-auto text-gray-300 py-2 px-4 rounded-lg border hover:bg-gray-800 hover:text-gray-300 cursor-pointer ml-6"
+                onClick={() => setDataUploaded(false)}
+              >
+                Add More
+              </button>
+            )}
+          </>
+        ) : (
+          <button
+            type="submit"
+            className="w-auto bg-gray-300 text-gray-700 py-2 px-4 rounded-lg border hover:bg-gray-700 hover:text-gray-300 cursor-pointer"
+          >
+            Upload
+          </button>
+        )}
       </form>
     </div>
   );

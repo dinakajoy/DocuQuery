@@ -1,15 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ChatArea from "@/components/ChatArea";
 import Upload from "@/components/Upload";
 import { DataSource } from "@/types";
+import {
+  clearData,
+  getData,
+  saveData,
+  saveDocsData,
+  getDocsData,
+  clearDocsData,
+} from "@/utils/indexedDb";
 
 export default function UploadDataForm() {
   const [loading, setLoading] = useState(false);
   const [sources, setSources] = useState<DataSource[]>([]);
   const [dataUploaded, setDataUploaded] = useState(false);
   const [error, setError] = useState("");
+  const [chatError, setChatError] = useState<string | null>(null);
   const [docs, setDocs] = useState("");
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<
@@ -17,6 +26,27 @@ export default function UploadDataForm() {
   >([]);
 
   const MAX_TOTAL_SIZE_MB = 20;
+
+  // Load initial data from indexedDb
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await getData();
+      const docs = await getDocsData();
+      if (data) {
+        console.log("Loaded data from IndexedDB:", data);
+        setSources(data);
+        setDataUploaded(true);
+      } else {
+        setSources([]);
+      }
+      if (docs) {
+        setDocs(JSON.stringify(docs));
+      } else {
+        setDocs("");
+      }
+    };
+    fetchData();
+  }, []);
 
   const getTotalSizeMB = (sources: DataSource[]) => {
     let total = 0;
@@ -78,17 +108,26 @@ export default function UploadDataForm() {
       }
     });
 
+    await saveData(validSources);
+
     const res = await fetch("/api/upload", {
       method: "POST",
       body: formData,
     });
-
     const data = await res.json();
-    setDataUploaded(true);
-    setDocs(data.docs);
+
+    if (data.error) {
+      setError(data.error);
+    } else {
+      setError("");
+      await saveDocsData(data.docs);
+      setDocs(data.docs);
+      setDataUploaded(true);
+    }
   };
 
   const handleAsk = async () => {
+    setChatError(null);
     if (!question.trim()) return;
 
     setMessages((prev) => [...prev, { role: "user", content: question }]);
@@ -100,23 +139,36 @@ export default function UploadDataForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ docs, question }),
       });
-
       const data = await res.json();
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.answer },
-      ]);
+      if (data.error) {
+        setChatError(data.error);
+      } else {
+        setChatError(null);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: data.answer },
+        ]);
+      }
     } catch (err) {
       console.error(err);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "⚠️ Something went wrong." },
-      ]);
+      setChatError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
       setQuestion("");
     }
+  };
+
+  const resetAll = async () => {
+    await clearData();
+    await clearDocsData();
+    setSources([]);
+    setDataUploaded(false);
+    setDocs("");
+    setQuestion("");
+    setMessages([]);
+    setError("");
+    setChatError(null);
   };
 
   return (
@@ -130,6 +182,10 @@ export default function UploadDataForm() {
           setError={setError}
           sources={sources}
           setSources={setSources}
+          getTotalSizeMB={getTotalSizeMB}
+          dataUploaded={dataUploaded}
+          setDataUploaded={setDataUploaded}
+          resetAll={resetAll}
         />
       </div>
 
@@ -143,6 +199,7 @@ export default function UploadDataForm() {
           loading={loading}
           handleAsk={handleAsk}
           dataUploaded={dataUploaded}
+          chatError={chatError}
         />
       </div>
     </div>

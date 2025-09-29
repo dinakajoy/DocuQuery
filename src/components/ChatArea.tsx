@@ -11,6 +11,7 @@ type ChatAreaProps = {
   setQuestion: (q: string) => void;
   handleAsk: () => Promise<void>;
   dataUploaded: boolean;
+  chatError: string | null;
 };
 
 export default function ChatArea({
@@ -20,6 +21,7 @@ export default function ChatArea({
   loading,
   question,
   setQuestion,
+  chatError,
 }: ChatAreaProps) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -63,6 +65,8 @@ export default function ChatArea({
             {loading && <Loader />}
             <div ref={bottomRef} />
           </div>
+          {/* Error */}
+          {chatError && <p className="text-red-500 text-md px-6 py-2">{chatError}</p>}
 
           {/* Question Area */}
           <div className="p-4 border-t bg-white flex items-center">

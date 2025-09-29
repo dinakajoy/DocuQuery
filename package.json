@@ -12,6 +12,7 @@
   "dependencies": {
     "@langchain/community": "^0.3.56",
     "@langchain/core": "^0.3.76",
+    "idb": "^8.0.3",
     "langchain": "^0.3.34",
     "next": "15.5.3",
     "node-tesseract-ocr": "^2.2.1",
